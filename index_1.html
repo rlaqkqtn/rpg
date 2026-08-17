@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신의 은총 — 프로토타입</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;900&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-void:#0b0d14;
+    --bg-panel:#12141f;
+    --bg-panel-2:#191c2b;
+    --gold:#d4af37;
+    --gold-dim:#7a6a2e;
+    --celestial:#6e8fb8;
+    --earth:#a97d4a;
+    --abyss:#8a3a3a;
+    --parchment:#e8e2d0;
+    --parchment-dim:#8b8778;
+    --danger:#c65a5a;
+    --ok:#6fae7a;
+    --line:#2a2d3d;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 50% -10%, #1b2036 0%, var(--bg-void) 55%),
+      var(--bg-void);
+    color:var(--parchment);
+    font-family:'Noto Sans KR', sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:24px 16px 60px;
+  }
+  h1,h2,h3,.display{
+    font-family:'Noto Serif KR', serif;
+    letter-spacing:0.02em;
+  }
+  .mono{font-family:'JetBrains Mono', monospace;}
+
+  #app{ width:100%; max-width:1040px; }
+
+  /* ---------- Title ---------- */
+  .title-screen{
+    min-height:70vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    gap:28px;
+  }
+  .title-screen .eyebrow{
+    color:var(--gold); letter-spacing:0.35em; font-size:12px; text-transform:uppercase;
+  }
+  .title-screen h1{
+    font-size:clamp(36px,7vw,64px); font-weight:900; margin:0;
+    background:linear-gradient(180deg,#fff6da,var(--gold) 60%, var(--gold-dim));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .title-screen p{ color:var(--parchment-dim); max-width:460px; line-height:1.7; margin:0;}
+  .btn{
+    appearance:none; border:1px solid var(--gold-dim); background:var(--bg-panel-2);
+    color:var(--parchment); font-family:'Noto Serif KR',serif; font-weight:600;
+    padding:12px 28px; border-radius:999px; cursor:pointer; font-size:15px;
+    transition:all .15s ease; letter-spacing:0.03em;
+  }
+  .btn:hover{ border-color:var(--gold); background:#20233a; transform:translateY(-1px);}
+  .btn:active{ transform:translateY(0); }
+  .btn.primary{ background:linear-gradient(180deg,#e8c766,var(--gold)); color:#1b1503; border:none; }
+  .btn.primary:hover{ filter:brightness(1.08); }
+  .btn.danger{ border-color:#5c2a2a; }
+  .btn.danger:hover{ border-color:var(--danger); }
+  .btn:disabled{ opacity:.35; cursor:not-allowed; transform:none; }
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+
+  /* ---------- Layout ---------- */
+  .layout{ display:grid; grid-template-columns: 300px 1fr; gap:20px; }
+  @media (max-width: 860px){ .layout{ grid-template-columns:1fr; } }
+
+  .panel{
+    background:var(--bg-panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px;
+  }
+  .panel + .panel{ margin-top:16px; }
+  .panel-title{
+    font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold);
+    margin:0 0 12px;
+  }
+
+  /* ---------- Triangle map ---------- */
+  .map-wrap svg{ width:100%; height:auto; display:block; }
+  .node-label{ font-family:'Noto Serif KR',serif; font-size:13px; fill:var(--parchment); }
+  .node-sub{ font-family:'JetBrains Mono',monospace; font-size:9px; fill:var(--parchment-dim); }
+
+  /* ---------- Stat bars ---------- */
+  .stat-row{ display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:12px; }
+  .stat-row .label{ width:44px; color:var(--parchment-dim); flex-shrink:0; }
+  .bar{ flex:1; height:8px; background:#20222f; border-radius:99px; overflow:hidden; border:1px solid var(--line); }
+  .bar > div{ height:100%; border-radius:99px; transition:width .3s ease; }
+  .bar.hp > div{ background:linear-gradient(90deg,#6fae7a,#9fd6a8); }
+  .bar.enemy > div{ background:linear-gradient(90deg,#c65a5a,#e08787); }
+  .bar.shield > div{ background:linear-gradient(90deg,#6e8fb8,#a9c3e0); }
+  .bar.progress > div{ background:linear-gradient(90deg,var(--gold-dim),var(--gold)); }
+  .stat-num{ width:56px; text-align:right; color:var(--parchment-dim); font-size:11px; }
+
+  /* ---------- Keys ---------- */
+  .key-row{ display:flex; gap:8px; margin-top:6px; }
+  .key-chip{
+    width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--line); background:#181a26; font-size:14px; color:var(--parchment-dim);
+  }
+  .key-chip.on{ border-color:var(--gold); background:radial-gradient(circle,#4a3d14,#191c2b); color:var(--gold); }
+
+  /* ---------- Job slots ---------- */
+  .slots{ display:flex; gap:10px; flex-wrap:wrap; }
+  .slot{
+    flex:1; min-width:120px; border:1px solid var(--line); border-radius:var(--radius);
+    background:var(--bg-panel-2); padding:10px; cursor:pointer; text-align:left;
+  }
+  .slot.active{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset; }
+  .slot.empty{ opacity:.4; cursor:default; }
+  .slot .name{ font-family:'Noto Serif KR',serif; font-size:13px; font-weight:600; }
+  .slot .region-tag{ font-size:10px; color:var(--parchment-dim); margin-top:2px; }
+  .slot .active-tag{ font-size:10px; color:var(--gold); margin-top:4px; }
+
+  .skills{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .skill-btn{
+    text-align:left; border:1px solid var(--line); background:var(--bg-panel-2);
+    border-radius:8px; padding:10px 12px; cursor:pointer; color:var(--parchment);
+  }
+  .skill-btn:hover{ border-color:var(--gold); }
+  .skill-btn .sk-name{ font-weight:700; font-size:13px; }
+  .skill-btn .sk-type{ font-size:10px; color:var(--gold); margin-left:6px; text-transform:uppercase; letter-spacing:.06em; }
+  .skill-btn .sk-desc{ font-size:11px; color:var(--parchment-dim); margin-top:3px; line-height:1.5; }
+
+  /* ---------- Log ---------- */
+  .log{
+    background:#0f1119; border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 14px; height:180px; overflow-y:auto; font-size:12.5px; line-height:1.8;
+    color:var(--parchment-dim);
+  }
+  .log p{ margin:0 0 6px; }
+  .log .sys{ color:var(--gold); }
+  .log .dmg{ color:var(--danger); }
+  .log .heal{ color:var(--ok); }
+
+  /* ---------- Job pool ---------- */
+  .job-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
+  .job-card{
+    border:1px solid var(--line); border-radius:var(--radius); padding:12px; background:var(--bg-panel-2);
+  }
+  .job-card.hidden-job{ border-style:dashed; border-color:var(--gold-dim); }
+  .job-card .jc-title{ font-family:'Noto Serif KR',serif; font-weight:700; font-size:14px; }
+  .job-card .jc-tag{ font-size:10px; color:var(--parchment-dim); margin-bottom:8px; }
+  .job-card ul{ margin:0; padding-left:16px; font-size:11.5px; color:var(--parchment-dim); line-height:1.6; }
+
+  .narrative{ font-size:14px; line-height:1.9; color:var(--parchment); }
+  .region-title{ display:flex; align-items:baseline; gap:10px; margin-bottom:4px;}
+  .region-title h2{ margin:0; font-size:22px; }
+  .region-title .tag{ font-size:11px; color:var(--parchment-dim); }
+
+  .badge{
+    display:inline-block; font-size:10px; padding:3px 9px; border-radius:99px; border:1px solid var(--line);
+    color:var(--parchment-dim); margin-right:6px;
+  }
+  .badge.gold{ border-color:var(--gold); color:var(--gold); }
+
+  hr.rule{ border:none; border-top:1px solid var(--line); margin:16px 0; }
+
+  footer{ text-align:center; color:var(--parchment-dim); font-size:11px; margin-top:36px; letter-spacing:.05em;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* =========================================================================
+   신의 은총 (가제) — 브레인스토밍 기획 프로토타입
+   - 삼각형 맵(천상/지상/지하 + 무게중심 신전) 기반 이동
+   - 키 보유 개수 = 전투 직업 슬롯 개수 (1→2→3)
+   - 일반 직업 9개 + 히든 직업 9개(쉬었음청년 제외 8개는 완전 구현, 쉬었음청년은
+     단순화된 형태로 포함 — 실제 조합/진화 UI는 이 프로토타입 범위 밖)
+   - 임시로 채워진 부분(탐험 텍스트, 전투 수치, 발견 확률 등)은 README.md 참고
+   ========================================================================= */
+
+/* ---------------------------- 데이터: 직업 ---------------------------- */
+
+const REGION_META = {
+  지상: { color:'var(--earth)', hex:'#a97d4a', desc:'세 세계의 한가운데, 마을과 들판과 폐허가 뒤섞인 곳' },
+  지하: { color:'var(--abyss)', hex:'#8a3a3a', desc:'흑막이 가장 먼저 지배한 땅. 광산과 동굴이 끝없이 이어진다' },
+  천상: { color:'var(--celestial)', hex:'#6e8fb8', desc:'신들의 영역. 구름 위로 낯선 신성한 건축물이 떠 있다' },
+};
+
+const GENERAL_JOBS = [
+  // 지상
+  { id:'용병', region:'지상',
+    skills:[
+      {name:'철갑 태세', type:'버프', desc:'방어력이 상승한다.'},
+      {name:'도발의 외침', type:'제어', desc:'주변 적의 어그로를 집중시킨다.'},
+      {name:'강타', type:'딜', desc:'근접 강공격을 가한다.'},
+    ],
+    advancements:[
+      {name:'결사대장', skills:['불굴','전열 유지','최후의 저항']},
+      {name:'암살자', skills:['그림자 걸음','약점 간파','일격필살']},
+    ]},
+  { id:'행상인', region:'지상',
+    skills:[
+      {name:'감정의 눈', type:'유틸', desc:'아이템의 가치/희귀도를 즉시 파악한다.'},
+      {name:'연막탄', type:'제어', desc:'주변 시야를 차단한다.'},
+      {name:'투척 단검', type:'딜', desc:'원거리 견제 공격을 가한다.'},
+    ],
+    advancements:[
+      {name:'정보상', skills:['지역 정보망','뒷거래','속임수 협상']},
+      {name:'밀수꾼', skills:['위험 지형 적응','빠른 손','탈출 연막']},
+    ]},
+  { id:'수배꾼', region:'지상',
+    skills:[
+      {name:'추적 표식', type:'디버프', desc:'대상에게 표식을 부여해 이후 공격에 추가 피해를 준다.'},
+      {name:'포박 사슬', type:'제어', desc:'대상을 이동 불가 상태로 만든다.'},
+      {name:'저격', type:'딜', desc:'원거리 고정 피해를 가한다.'},
+    ],
+    advancements:[
+      {name:'현상금 사냥꾼', skills:['처형 선고','연속 사격','마지막 숨통']},
+      {name:'함정 사냥꾼', skills:['철망 함정','폭발 표식','덫의 지배자']},
+    ]},
+  // 지하
+  { id:'광부', region:'지하',
+    skills:[
+      {name:'단단한 살갗', type:'버프', desc:'물리 피해 감소 효과를 얻는다.'},
+      {name:'낙석 유도', type:'제어', desc:'전방의 적을 기절시킨다.'},
+      {name:'곡괭이 강타', type:'딜', desc:'근접 광역 공격을 가한다.'},
+    ],
+    advancements:[
+      {name:'채굴왕', skills:['채굴 특화','보석 갑주','대지의 축복']},
+      {name:'지진술사', skills:['지반 붕괴','진동파','대격변']},
+    ]},
+  { id:'암귀사냥꾼', region:'지하',
+    skills:[
+      {name:'맹독 도포', type:'디버프', desc:'무기에 중독 효과를 부여한다.'},
+      {name:'함정 설치', type:'제어', desc:'은신 함정을 배치한다.'},
+      {name:'급소 찌르기', type:'딜', desc:'단일 대상에게 강한 피해를 가한다.'},
+    ],
+    advancements:[
+      {name:'맹독사', skills:['맹독 확산','부식','맹독 폭발']},
+      {name:'함정술사', skills:['연쇄 함정','매복','완벽한 덫']},
+    ]},
+  { id:'혈투사', region:'지하',
+    skills:[
+      {name:'피의 갈증', type:'버프', desc:'공격 시 체력을 흡수한다.'},
+      {name:'광기의 방어', type:'버프', desc:'피해를 받을수록 다음 공격력이 상승한다.'},
+      {name:'광기의 연타', type:'딜', desc:'다단 근접 공격을 가한다.'},
+    ],
+    advancements:[
+      {name:'광전사', skills:['자상','한계돌파','최후의 광란']},
+      {name:'투기장의 왕', skills:['제압의 원환','압도','왕좌의 위엄']},
+    ]},
+  // 천상
+  { id:'성기사', region:'천상',
+    skills:[
+      {name:'수호의 오라', type:'버프', desc:'자신의 방어력이 상승한다.'},
+      {name:'빛의 사슬', type:'제어', desc:'원거리 투사체로 적을 이동 불가 상태로 만든다.'},
+      {name:'심판의 창', type:'딜', desc:'투척형 원거리 공격을 가한다.'},
+    ],
+    advancements:[
+      {name:'수호기사', skills:['철벽','광역 속박의 빛','반사의 빛']},
+      {name:'심판자', skills:['심판의 낙뢰','정화의 빛','최후의 심판']},
+    ]},
+  { id:'신관', region:'천상',
+    skills:[
+      {name:'자가 치유', type:'버프', desc:'즉시 체력을 회복한다.'},
+      {name:'결계', type:'제어', desc:'일정 시간 피해 감소 구역을 만든다.'},
+      {name:'신성탄', type:'딜', desc:'원거리 신성 투사체로 공격한다.'},
+    ],
+    advancements:[
+      {name:'치유사', skills:['연속 치유','불멸의 가호','정화']},
+      {name:'축복술사', skills:['강화의 축복','가호의 잔영','천상의 개입']},
+    ]},
+  { id:'의식집행자', region:'천상',
+    skills:[
+      {name:'봉인의 사슬', type:'디버프', desc:'대상의 스킬 사용을 봉쇄한다.'},
+      {name:'의식진', type:'유틸', desc:'특정 범위 내 효과를 강화한다.'},
+      {name:'저주의 낙인', type:'딜', desc:'대상에게 지속 피해를 각인시킨다.'},
+    ],
+    advancements:[
+      {name:'봉인술사', skills:['완전 봉인','약화의 진','최후의 봉인']},
+      {name:'강령술사', skills:['혼령 소환','계약의 힘','망자의 군세']},
+    ]},
+];
+
+const HIDDEN_JOBS = [
+  { id:'쉬었음청년', region:'지상', special:'fusion',
+    skills:[
+      {name:'스킬 흡수', type:'유틸', desc:'다른 직업의 초반 스킬을 배운다. (실제 조합/진화 UI는 추후 구현 예정)'},
+      {name:'즉흥 대응', type:'버프', desc:'최근 행동을 바탕으로 임시 강화 효과를 얻는다.'},
+      {name:'경험의 축적', type:'딜', desc:'지금까지 배운 스킬의 흔적을 담아 공격한다.'},
+    ]},
+  { id:'광대', region:'지상',
+    skills:[
+      {name:'패 뽑기', type:'버프', desc:'전투 시작 시 랜덤 효과 카드가 적용된다.'},
+      {name:'광대의 도약', type:'제어', desc:'회피 이동 후 성공 시 다음 공격이 치명타로 확정된다.'},
+      {name:'마지막 웃음', type:'딜', desc:'위험할 때 발동, 주변 적 전원에게 큰 피해를 준다.'},
+    ]},
+  { id:'사기꾼', region:'지상',
+    skills:[
+      {name:'속임수 거래', type:'유틸', desc:'전리품의 등급을 조작한다. (실패 확률 존재)'},
+      {name:'가짜 죽음', type:'제어', desc:'위장 사망으로 적의 방심을 유도한다.'},
+      {name:'도박사의 손', type:'딜', desc:'배율을 걸고 큰 피해 또는 무효를 노린다.'},
+    ]},
+  { id:'망령', region:'지하',
+    skills:[
+      {name:'반신반의', type:'버프', desc:'일정 시간 물리 피해를 무효화한다. (이동 불가 대가)'},
+      {name:'빙의', type:'유틸', desc:'처치한 적의 스킬을 잠시 사용한다.'},
+      {name:'원한', type:'딜', desc:'받은 피해량을 누적했다가 한 번에 돌려준다.'},
+    ]},
+  { id:'장의사', region:'지하',
+    skills:[
+      {name:'해부', type:'유틸', desc:'처치한 몬스터에서 특수 재료를 확정 획득한다.'},
+      {name:'인형 조종', type:'버프', desc:'시체를 일시적으로 되살려 조력자로 삼는다.'},
+      {name:'묘지기의 방벽', type:'제어', desc:'주변 시체를 소모해 방어막을 만든다.'},
+    ]},
+  { id:'오류인간', region:'지하',
+    skills:[
+      {name:'캡 브레이크', type:'딜', desc:'3초간 공격속도 상한선이 사라진다.'},
+      {name:'음수 쿨다운', type:'유틸', desc:'스킬 사용 시 다른 스킬의 재사용 대기시간이 역행 감소한다.'},
+      {name:'충돌 판정 상실', type:'버프', desc:'일정 시간 적의 타겟팅에서 제외된다.'},
+    ]},
+  { id:'용의 후계자', region:'천상',
+    skills:[
+      {name:'용의 숨결', type:'딜', desc:'원거리 광역 브레스 공격을 가한다.'},
+      {name:'비늘 각성', type:'버프', desc:'물리/마법 저항이 대폭 상승한다.'},
+      {name:'용왕의 위엄', type:'제어', desc:'주변 적 전체를 공포 상태로 만든다.'},
+    ]},
+  { id:'시간방랑자', region:'천상',
+    skills:[
+      {name:'되감기', type:'버프', desc:'직전 몇 초의 위치/체력 상태로 되돌아간다.'},
+      {name:'가속의 잔상', type:'버프', desc:'짧은 시간 행동속도가 대폭 상승한다.'},
+      {name:'정지된 시간', type:'제어', desc:'광역으로 적의 시간을 일시 정지시킨다.'},
+    ]},
+  { id:'반사술사', region:'천상',
+    skills:[
+      {name:'거울 방패', type:'제어', desc:'원거리 공격을 일정 확률로 반사한다.'},
+      {name:'모방', type:'유틸', desc:'최근 맞은 적 스킬을 복사해 사용한다.'},
+      {name:'완전 반사', type:'버프', desc:'짧은 시간 모든 피해를 무효화하며 반사한다. (긴 재사용 대기)'},
+    ]},
+];
+
+function jobById(id){
+  return GENERAL_JOBS.find(j=>j.id===id) || HIDDEN_JOBS.find(j=>j.id===id);
+}
+
+/* ---------------------------- 데이터: 탐험/서사 ---------------------------- */
+
+const OPENING_TEXT = {
+  천상: `정신이 들었을 때, 당신은 구름 위 어딘가에 위태롭게 걸쳐 있었다. 발밑은 끝없는 낭떠러지, 머리 위로는 낯선 신들의 성역이 빛나고 있다. 이름도, 얼굴도, 어쩌다 이곳까지 떨어졌는지도 — 아무것도 기억나지 않는다.`,
+  지상: `정신이 들었을 때, 당신은 이름 모를 들판에 쓰러져 있었다. 하늘 저편에서 떨어진 것 같은 느낌만 어렴풋할 뿐, 그 외엔 아무것도 기억나지 않는다.`,
+  지하: `정신이 들었을 때, 당신은 차갑고 축축한 동굴 바닥에 쓰러져 있었다. 아득히 먼 머리 위에서 희미한 빛 한 줄기가 새어 들어올 뿐, 그 외엔 아무것도 기억나지 않는다.`,
+};
+
+// 지역별 탐험 스텝 (임시 플레이버 텍스트 — README 참고)
+const EXPLORE_STEPS = {
+  지상:[
+    { text:'폐허가 된 마을 어귀에서, 낡은 갑옷을 입은 용병 무리와 마주친다. 그들의 몸짓을 눈으로 훔쳐 익힌다.', learn:'용병' },
+    { text:'길가에서 만난 행상인이 지친 당신에게 빵 한 조각을 건넨다. 대화 끝에 그의 화술과 손놀림을 어깨너머로 배운다.', learn:'행상인', shrineGlimpse:true },
+    { text:'현상금 벽보가 붙은 나무 아래서, 수배꾼 한 명이 표적을 추적하는 방식을 지켜본다.', learn:'수배꾼', battle:true },
+    { text:'들판 저 너머, 세 세계의 무게중심에 서 있다는 신전의 형체가 아지랑이처럼 아른거린다 — 저곳에 무언가 있다.', keyStep:true },
+  ],
+  지하:[
+    { text:'광산 갱도 깊은 곳에서 곡괭이를 든 광부들과 마주친다. 그들의 손놀림에서 지형을 다루는 법을 익힌다.', learn:'광부' },
+    { text:'어둠 속에서 은밀히 움직이는 암귀사냥꾼의 흔적을 뒤쫓는다. 함정과 독을 다루는 법을 눈에 담는다.', learn:'암귀사냥꾼', shrineGlimpse:true },
+    { text:'투기장에서 울려 퍼지는 함성 속, 혈투사들의 광기 어린 전투를 목격한다.', learn:'혈투사', battle:true },
+    { text:'가장 깊은 균열 너머로, 세 세계의 무게중심과 이어진다는 신전의 잔광이 희미하게 새어 나온다.', keyStep:true },
+  ],
+  천상:[
+    { text:'빛나는 회랑에서 창을 든 성기사들이 순찰하는 모습을 지켜본다. 그들의 자세를 몸에 새긴다.', learn:'성기사' },
+    { text:'조용한 예배당, 신관들이 서로에게 축복을 내리는 의식을 훔쳐본다.', learn:'신관', shrineGlimpse:true },
+    { text:'봉인의 진을 다루는 의식집행자의 손짓 하나하나를 눈으로 따라 익힌다.', learn:'의식집행자', battle:true },
+    { text:'구름 사이로, 세 세계의 무게중심에 우뚝 선 신전의 첨탑이 아득히 내려다보인다.', keyStep:true },
+  ],
+};
+
+const KEY_FOUND_TEXT = {
+  지상:'무너진 제단 밑, 흙에 파묻힌 무언가가 은은한 금빛을 낸다. 손에 쥐는 순간, 이것이 「신의 은총」의 파편임을 직감한다.',
+  지하:'막다른 균열 끝, 오래전 숨겨진 파편 하나가 어둠 속에서 스스로 빛을 낸다. 「신의 은총」의 조각이 당신을 기다리고 있었다.',
+  천상:'신들조차 잊은 작은 제실, 먼지 쌓인 함 속에서 파편 하나가 발견된다. 신들 자신도 모르게 숨겨져 있던 「신의 은총」의 사본이다.',
+};
+
+const HIDDEN_SEARCH_FLAVOR = [
+  '수상한 흔적을 조사했지만, 아무것도 찾지 못했다.',
+  '이상한 낙서를 발견했지만 의미를 알 수 없었다.',
+  '누군가 지나간 흔적이 있지만 곧 끊긴다.',
+];
+
+const ENEMY_POOL = {
+  지상:['타락한 파수병','반란군 척후병','들개 무리'],
+  지하:['갱도의 그림자','흑막의 하수인','폭주한 광석괴물'],
+  천상:['타락한 천상 병사','봉인을 노리는 광신도','빛바랜 수호상'],
+};
+
+/* ---------------------------- 게임 상태 ---------------------------- */
+
+const REGIONS = ['천상','지상','지하'];
+
+let S = {
+  screen:'title', // title, intro, main, battle, shrine, finalboss, ending
+  spawnRegion:null,
+  visitOrder:[],
+  currentRegion:null,
+  stepIndex:0,
+  keys:[], // list of region names whose key obtained
+  learned:{}, // jobId -> true
+  slots:[null,null,null],
+  activeSlot:0,
+  player:{hp:100, maxHp:100, shield:0},
+  battle:null,
+  travelChoicePending:false,
+  log:[],
+  ending:false,
+};
+
+function maxSlots(){ return Math.min(3, S.keys.length+1); }
+
+function pushLog(html, cls){
+  S.log.push({html, cls: cls||''});
+  if(S.log.length>60) S.log.shift();
+}
+
+/* ---------------------------- 흐름 제어 ---------------------------- */
+
+function startGame(){
+  S.spawnRegion = REGIONS[Math.floor(Math.random()*3)];
+  S.currentRegion = S.spawnRegion;
+  S.visitOrder = [S.spawnRegion];
+  S.screen='intro';
+  render();
+}
+
+function enterMain(){
+  S.screen='main';
+  S.stepIndex=0;
+  pushLog(`<span class="sys">◆ ${S.currentRegion}에서 눈을 뜨다.</span>`);
+  render();
+}
+
+function doExplore(){
+  const region = S.currentRegion;
+  const steps = EXPLORE_STEPS[region];
+  if(S.stepIndex >= steps.length) return;
+  const step = steps[S.stepIndex];
+  pushLog(step.text);
+
+  if(step.learn && !S.learned[step.learn]){
+    S.learned[step.learn]=true;
+    pushLog(`<span class="sys">◆ 「${step.learn}」의 방식을 익혔다. (직업 습득)</span>`);
+    autoEquipIfEmpty(step.learn);
+  }
+  if(step.shrineGlimpse){
+    pushLog(`<span class="sys">◆ 세 세계의 무게중심 — 아주 오래된 신전의 존재를 직감한다. 저곳에 가려면 「신의 은총」의 힘이 필요하다.</span>`);
+  }
+
+  S.stepIndex++;
+
+  if(step.keyStep){
+    obtainKey(region);
+  } else if(step.battle && Math.random()<0.85){
+    startBattle(region);
+    return;
+  }
+  render();
+}
+
+function autoEquipIfEmpty(jobId){
+  const emptyIdx = S.slots.findIndex((s,i)=> s===null && i<maxSlots());
+  if(emptyIdx>=0){ S.slots[emptyIdx]=jobId; }
+}
+
+function searchHidden(){
+  const region = S.currentRegion;
+  const pool = HIDDEN_JOBS.filter(h=>h.region===region && !S.learned[h.id]);
+  if(pool.length===0){
+    pushLog('이 지역에서 더 찾을 수 있는 숨겨진 흔적은 없는 듯하다.');
+    render(); return;
+  }
+  if(Math.random() < 0.35){
+    const found = pool[Math.floor(Math.random()*pool.length)];
+    S.learned[found.id]=true;
+    pushLog(`<span class="sys">◆ 아무도 모르는 흔적을 따라가다, 히든 직업 「${found.id}」를 발견했다!</span>`);
+    autoEquipIfEmpty(found.id);
+  } else {
+    pushLog(HIDDEN_SEARCH_FLAVOR[Math.floor(Math.random()*HIDDEN_SEARCH_FLAVOR.length)]);
+  }
+  if(Math.random()<0.2){ startBattle(region); return; }
+  render();
+}
+
+function obtainKey(region){
+  S.keys.push(region);
+  pushLog(`<span class="sys">✦ ${KEY_FOUND_TEXT[region]}</span>`);
+  pushLog(`<span class="sys">✦ 「신의 은총」 파편 ${S.keys.length}/3 확보. 전투 직업 슬롯이 ${maxSlots()}개로 늘어났다.</span>`);
+
+  if(S.keys.length>=3){
+    S.screen='shrine';
+    return;
+  }
+  const remaining = REGIONS.filter(r=>!S.visitOrder.includes(r));
+  if(remaining.length===1){
+    // 자동 이동
+    travelTo(remaining[0]);
+  } else {
+    S.travelChoicePending = true;
+  }
+}
+
+function travelTo(region){
+  S.currentRegion = region;
+  S.visitOrder.push(region);
+  S.travelChoicePending=false;
+  S.stepIndex=0;
+  pushLog(`<span class="sys">◆ 신의 은총이 이끄는 힘을 따라 ${region}(으)로 넘어간다.</span>`);
+  render();
+}
+
+/* ---------------------------- 전투 ---------------------------- */
+
+function startBattle(region){
+  const name = ENEMY_POOL[region][Math.floor(Math.random()*ENEMY_POOL[region].length)];
+  S.battle = {
+    enemyName:name, hp:60, maxHp:60, atk:[8,14], stunned:false, atkDown:0,
+  };
+  S.screen='battle';
+  pushLog(`<span class="dmg">⚔ ${name}과(와) 마주쳤다!</span>`);
+  render();
+}
+
+function activeJob(){
+  const id = S.slots[S.activeSlot];
+  return id ? jobById(id) : null;
+}
+
+function useSkill(skill){
+  if(!S.battle) return;
+  const b = S.battle;
+  let msg = `<b>${skill.name}</b> 사용 — `;
+  switch(skill.type){
+    case '딜': {
+      const dmg = 14 + Math.floor(Math.random()*10);
+      b.hp = Math.max(0,b.hp-dmg);
+      msg += `<span class="dmg">${b.enemyName}에게 ${dmg} 피해!</span>`;
+      break;
+    }
+    case '버프': {
+      const shield = 12;
+      S.player.shield += shield;
+      msg += `<span class="heal">보호막 +${shield}</span>`;
+      break;
+    }
+    case '디버프': {
+      b.atkDown = 2;
+      msg += `${b.enemyName}의 공격력이 일시적으로 약화되었다.`;
+      break;
+    }
+    case '제어': {
+      b.stunned = true;
+      msg += `${b.enemyName}의 다음 행동을 봉쇄했다.`;
+      break;
+    }
+    case '유틸': {
+      const heal = 6;
+      S.player.hp = Math.min(S.player.maxHp, S.player.hp+heal);
+      msg += `체력 +${heal} 회복.`;
+      break;
+    }
+  }
+  pushLog(msg);
+
+  if(b.hp<=0){
+    pushLog(`<span class="sys">◆ ${b.enemyName}을(를) 물리쳤다!</span>`);
+    S.battle=null;
+    S.screen = (S.keys.length>=3) ? 'shrine' : (S.travelChoicePending ? 'main' : 'main');
+    render();
+    return;
+  }
+
+  // 적 턴
+  if(b.stunned){
+    pushLog(`${b.enemyName}이(가) 기절해 움직이지 못한다.`);
+    b.stunned=false;
+  } else {
+    let dmg = b.atk[0]+Math.floor(Math.random()*(b.atk[1]-b.atk[0]));
+    if(b.atkDown>0){ dmg = Math.floor(dmg*0.6); b.atkDown--; }
+    let absorbed = Math.min(S.player.shield, dmg);
+    S.player.shield -= absorbed;
+    dmg -= absorbed;
+    S.player.hp = Math.max(0, S.player.hp-dmg);
+    pushLog(`${b.enemyName}의 반격! <span class="dmg">${dmg} 피해</span>${absorbed>0?` (보호막이 ${absorbed} 흡수)`:''}`);
+    if(S.player.hp<=0){
+      pushLog(`<span class="sys">◆ 정신이 아득해진다... 가까스로 몸을 추스른다.</span>`);
+      S.player.hp = Math.floor(S.player.maxHp*0.4);
+      S.battle=null;
+      S.screen='main';
+    }
+  }
+  render();
+}
+
+function finalBoss(){
+  S.battle = { enemyName:'흑막', hp:160, maxHp:160, atk:[14,22], stunned:false, atkDown:0, isFinal:true };
+  S.screen='battle';
+  pushLog(`<span class="dmg">⚔ 흑막이 그 형체를 드러낸다. 최후의 전투가 시작된다!</span>`);
+  render();
+}
+
+/* 최종보스 승리는 useSkill 내부 공용 로직을 재사용하되, 종료 후 엔딩으로 분기 */
+const _origUseSkill = useSkill;
+
+/* ---------------------------- 슬롯 관리 ---------------------------- */
+
+function equipToSlot(slotIdx, jobId){
+  if(slotIdx>=maxSlots()) return;
+  S.slots[slotIdx]=jobId;
+  render();
+}
+
+/* ---------------------------- 렌더링 ---------------------------- */
+
+function el(html){ const d=document.createElement('div'); d.innerHTML=html; return d.firstElementChild; }
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML='';
+
+  if(S.screen==='title') return app.appendChild(renderTitle());
+  if(S.screen==='intro') return app.appendChild(renderIntro());
+  if(S.screen==='shrine') return app.appendChild(renderShrine());
+  if(S.screen==='ending') return app.appendChild(renderEnding());
+
+  // main / battle 공통 레이아웃
+  const layout = document.createElement('div');
+  layout.className='layout';
+  layout.appendChild(renderSidebar());
+  layout.appendChild(S.screen==='battle' ? renderBattle() : renderMain());
+  app.appendChild(layout);
+  const foot = el(`<footer>신의 은총 — 브레인스토밍 기획 프로토타입 · 임시 데이터는 README.md 참고</footer>`);
+  app.appendChild(foot);
+}
+
+function renderTitle(){
+  return el(`
+    <div class="title-screen">
+      <div class="eyebrow">1인 RPG · 기획 프로토타입</div>
+      <h1>신의 은총</h1>
+      <p>모든 죄를 뒤집어쓰고 낭떠러지에 던져진 자. 기억을 잃은 채 세 세계 중 한 곳에서 눈을 뜬다.
+      천상 · 지상 · 지하, 삼각형으로 얽힌 세계의 무게중심에는 오래된 신전이 있다.</p>
+      <button class="btn primary" onclick="startGame()">눈을 뜨다</button>
+    </div>
+  `);
+}
+
+function renderIntro(){
+  return el(`
+    <div class="title-screen">
+      <div class="eyebrow">${S.spawnRegion} · 랜덤 스폰</div>
+      <p class="narrative" style="max-width:560px;">${OPENING_TEXT[S.spawnRegion]}</p>
+      <button class="btn primary" onclick="enterMain()">정신을 차리다</button>
+    </div>
+  `);
+}
+
+function renderSidebar(){
+  const wrap = document.createElement('div');
+
+  // 삼각형 맵
+  const mapPanel = el(`<div class="panel map-wrap"><p class="panel-title">세계의 형태</p></div>`);
+  mapPanel.appendChild(renderTriangleSVG());
+  wrap.appendChild(mapPanel);
+
+  // 상태
+  const keyChips = REGIONS.map(r=>{
+    const on = S.keys.includes(r);
+    return `<div class="key-chip ${on?'on':''}" title="${r}">${on?'✦':'·'}</div>`;
+  }).join('');
+
+  const statsPanel = el(`
+    <div class="panel">
+      <p class="panel-title">상태</p>
+      <div class="stat-row">
+        <span class="label">체력</span>
+        <div class="bar hp"><div style="width:${100*S.player.hp/S.player.maxHp}%"></div></div>
+        <span class="stat-num mono">${S.player.hp}/${S.player.maxHp}</span>
+      </div>
+      ${S.player.shield>0?`
+      <div class="stat-row">
+        <span class="label">보호막</span>
+        <div class="bar shield"><div style="width:${Math.min(100,S.player.shield*3)}%"></div></div>
+        <span class="stat-num mono">${S.player.shield}</span>
+      </div>`:''}
+      <div style="margin-top:10px;">
+        <span class="label" style="display:block; margin-bottom:6px;">은총 파편</span>
+        <div class="key-row">${keyChips}</div>
+      </div>
+    </div>
+  `);
+  wrap.appendChild(statsPanel);
+
+  // 직업 슬롯
+  const slotsHtml = [0,1,2].map(i=>{
+    const locked = i>=maxSlots();
+    const jobId = S.slots[i];
+    if(locked){
+      return `<div class="slot empty"><div class="name">잠김</div><div class="region-tag">파편 ${i}개 필요</div></div>`;
+    }
+    const job = jobId ? jobById(jobId) : null;
+    return `<div class="slot ${S.activeSlot===i?'active':''}" onclick="setActiveSlot(${i})">
+      <div class="name">${job? job.id : '― 비어있음 ―'}</div>
+      <div class="region-tag">${job? job.region+' 직업'+(HIDDEN_JOBS.includes(job)?' · 히든':'') : '아래에서 직업 선택'}</div>
+      ${S.activeSlot===i?'<div class="active-tag">● 사용 중</div>':''}
+    </div>`;
+  }).join('');
+
+  const slotPanel = el(`
+    <div class="panel">
+      <p class="panel-title">전투 직업 슬롯 (${maxSlots()}개 해금)</p>
+      <div class="slots">${slotsHtml}</div>
+    </div>
+  `);
+  wrap.appendChild(slotPanel);
+
+  // 습득한 직업 목록 (슬롯에 배치)
+  const learnedIds = Object.keys(S.learned);
+  if(learnedIds.length){
+    const rows = learnedIds.map(id=>{
+      const job = jobById(id);
+      const isHidden = HIDDEN_JOBS.includes(job);
+      return `<button class="skill-btn" style="width:100%;" onclick="assignJob('${id}')">
+        <span class="sk-name">${id}</span><span class="sk-type">${isHidden?'히든':'일반'} · ${job.region}</span>
+      </button>`;
+    }).join('');
+    wrap.appendChild(el(`<div class="panel"><p class="panel-title">습득한 직업 (클릭해 현재 슬롯에 배치)</p>${rows}</div>`));
+  }
+
+  return wrap;
+}
+
+function setActiveSlot(i){
+  if(i>=maxSlots()) return;
+  S.activeSlot=i;
+  render();
+}
+function assignJob(jobId){
+  S.slots[S.activeSlot]=jobId;
+  render();
+}
+
+function renderTriangleSVG(){
+  const W=260,H=220;
+  const top={x:W/2,y:20}, left={x:30,y:190}, right={x:W-30,y:190}, center={x:W/2,y:143};
+  const coordsByRegion = {천상:top, 지상:left, 지하:right};
+  const lines = [[top,left],[left,right],[right,top]].map(([a,b])=>{
+    const done = S.keys.length>=1; // 신전 발견 이후 전체적으로 은은히 밝아짐
+    return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${done?'#7a6a2e':'#2a2d3d'}" stroke-width="1.5"/>`;
+  }).join('');
+
+  const nodes = REGIONS.map(r=>{
+    const p = coordsByRegion[r];
+    const visited = S.visitOrder.includes(r);
+    const current = S.currentRegion===r && S.screen!=='shrine';
+    const keyed = S.keys.includes(r);
+    const fill = keyed ? '#d4af37' : (visited ? REGION_META[r].hex : '#2a2d3d');
+    return `
+      <g>
+        <circle cx="${p.x}" cy="${p.y}" r="${current?13:10}" fill="${fill}" stroke="${current?'#fff6da':'transparent'}" stroke-width="2"/>
+        <text x="${p.x}" y="${p.y - (r==='천상'?20:-24)}" text-anchor="middle" class="node-label">${r}</text>
+        <text x="${p.x}" y="${p.y - (r==='천상'?8:-36)}" text-anchor="middle" class="node-sub">${keyed?'파편 확보':(visited?'방문함':'미탐험')}</text>
+      </g>`;
+  }).join('');
+
+  const shrineGlow = S.keys.length>0;
+  const shrineNode = `
+    <g>
+      <circle cx="${center.x}" cy="${center.y}" r="7" fill="${shrineGlow?'#fff6da':'#191c2b'}" stroke="#d4af37" stroke-width="1.5"/>
+      <text x="${center.x}" y="${center.y+22}" text-anchor="middle" class="node-sub">신전</text>
+    </g>`;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML = lines + nodes + shrineNode;
+  return svg;
+}
+
+function renderMain(){
+  const region = S.currentRegion;
+  const steps = EXPLORE_STEPS[region];
+  const canExplore = S.stepIndex < steps.length;
+  const wrap = document.createElement('div');
+
+  const header = el(`
+    <div class="panel">
+      <div class="region-title">
+        <h2>${region}</h2>
+        <span class="tag mono">탐험 진행 ${Math.min(S.stepIndex,steps.length)}/${steps.length}</span>
+      </div>
+      <p style="color:var(--parchment-dim); font-size:13px; margin:0 0 12px;">${REGION_META[region].desc}</p>
+      <div class="bar progress" style="margin-bottom:14px;"><div style="width:${100*Math.min(S.stepIndex,steps.length)/steps.length}%"></div></div>
+      <div class="btn-row" style="justify-content:flex-start;">
+        <button class="btn primary" ${canExplore?'':'disabled'} onclick="doExplore()">탐험하다</button>
+        <button class="btn" onclick="searchHidden()">숨겨진 흔적 조사</button>
+      </div>
+    </div>
+  `);
+  wrap.appendChild(header);
+
+  if(S.travelChoicePending){
+    const remaining = REGIONS.filter(r=>!S.visitOrder.includes(r));
+    const btns = remaining.map(r=>`<button class="btn primary" onclick="travelTo('${r}')">${r}(으)로 이동</button>`).join('');
+    wrap.appendChild(el(`
+      <div class="panel">
+        <p class="panel-title">신전의 힘 — 다음 목적지 선택</p>
+        <p style="font-size:13px; color:var(--parchment-dim);">파편 하나를 손에 넣자, 신전으로 향하는 길이 두 갈래로 열렸다. 둘 중 하나만 지금 나아갈 수 있다.</p>
+        <div class="btn-row" style="justify-content:flex-start;">${btns}</div>
+      </div>
+    `));
+  }
+
+  wrap.appendChild(el(`
+    <div class="panel">
+      <p class="panel-title">기록</p>
+      <div class="log" id="logbox">${S.log.map(l=>`<p class="${l.cls}">${l.html}</p>`).join('')}</div>
+    </div>
+  `));
+
+  setTimeout(()=>{ const lb=document.getElementById('logbox'); if(lb) lb.scrollTop=lb.scrollHeight; },0);
+  return wrap;
+}
+
+function renderBattle(){
+  const b = S.battle;
+  const job = activeJob();
+  const wrap = document.createElement('div');
+
+  wrap.appendChild(el(`
+    <div class="panel">
+      <p class="panel-title">${b.isFinal?'최후의 전투':'전투'}</p>
+      <div class="region-title"><h2>${b.enemyName}</h2></div>
+      <div class="stat-row">
+        <span class="label">적</span>
+        <div class="bar enemy"><div style="width:${100*b.hp/b.maxHp}%"></div></div>
+        <span class="stat-num mono">${b.hp}/${b.maxHp}</span>
+      </div>
+    </div>
+  `));
+
+  const skillsHtml = job ? job.skills.map(sk=>`
+    <button class="skill-btn" onclick='useSkillByName(${JSON.stringify(job.id)}, ${JSON.stringify(sk.name)})'>
+      <span class="sk-name">${sk.name}</span><span class="sk-type">${sk.type}</span>
+      <div class="sk-desc">${sk.desc}</div>
+    </button>
+  `).join('') : `<p style="color:var(--parchment-dim); font-size:12px;">현재 슬롯에 장착된 직업이 없다. 왼쪽에서 슬롯을 눌러 직업을 배치하라.</p>`;
+
+  wrap.appendChild(el(`
+    <div class="panel">
+      <p class="panel-title">사용 중인 직업 — ${job? job.id : '없음'}</p>
+      <div class="skills">${skillsHtml}</div>
+    </div>
+  `));
+
+  wrap.appendChild(el(`
+    <div class="panel">
+      <p class="panel-title">기록</p>
+      <div class="log" id="logbox">${S.log.map(l=>`<p class="${l.cls}">${l.html}</p>`).join('')}</div>
+    </div>
+  `));
+
+  setTimeout(()=>{ const lb=document.getElementById('logbox'); if(lb) lb.scrollTop=lb.scrollHeight; },0);
+  return wrap;
+}
+
+function useSkillByName(jobId, skillName){
+  const job = jobById(jobId);
+  const sk = job.skills.find(s=>s.name===skillName);
+  const wasFinal = S.battle && S.battle.isFinal;
+  useSkill(sk);
+  if(!S.battle && wasFinal){
+    S.ending = true;
+    S.screen='ending';
+    render();
+  }
+}
+
+function renderShrine(){
+  return el(`
+    <div class="title-screen">
+      <div class="eyebrow">무게중심 · 중앙지점 신전</div>
+      <h1 style="font-size:34px;">세 파편이 모이다</h1>
+      <p style="max-width:520px;">세 세계에서 모은 「신의 은총」 파편 셋이 신전의 제단 위에서 공명한다.
+      빛이 소용돌이치며 흑막을 옭아매던 봉인의 일부가 풀려나간다 — 그 힘이 이제, 흑막을 약화시킨다.
+      흑막의 땅으로 향하는 길이 열렸다.</p>
+      <button class="btn primary" onclick="finalBoss()">흑막의 땅으로 진입한다</button>
+    </div>
+  `);
+}
+
+function renderEnding(){
+  return el(`
+    <div class="title-screen">
+      <div class="eyebrow">엔딩 (임시)</div>
+      <h1 style="font-size:34px;">기억 저편에서</h1>
+      <p style="max-width:560px; text-align:left; line-height:2;">
+      흑막이 무너진다. 그러나 마지막 순간, 흑막은 알 수 없는 말을 남긴다 —
+      "네가... 아직 살아있었나. 왕의 아들이."<br><br>
+      「신의 은총」은 원래 왕족만이 다룰 수 있는 힘이었다. 당신이 지금까지 자유로이 파편들을 다룰 수 있었던 것은,
+      우연이 아니라 당신의 핏줄 때문이었을지도 모른다.<br><br>
+      기억은 여전히 돌아오지 않았다. 그러나 이제, 무엇을 찾아야 할지는 알 것 같다.
+      </p>
+      <p style="color:var(--parchment-dim); font-size:12px;">— 이번 회차 스폰: ${S.spawnRegion} · 방문 순서: ${S.visitOrder.join(' → ')} —</p>
+      <button class="btn" onclick="location.reload()">처음부터 다시 시작</button>
+    </div>
+  `);
+}
+
+render();
+</script>
+</body>
+</html>

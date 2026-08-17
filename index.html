@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신의 은총 — 2D 프로토타입</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;900&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ---------------- 타이틀 ---------------- -->
+  <div id="screen-title" class="overlay-screen">
+    <div class="eyebrow">1인 RPG · 2D 플랫포머 프로토타입</div>
+    <h1 class="display big-title">신의 은총</h1>
+    <p>모든 죄를 뒤집어쓰고 낭떠러지에 던져진 자. 기억을 잃은 채 세 세계 중 한 곳에서 눈을 뜬다.
+    천상 · 지상 · 지하, 삼각형으로 얽힌 세계의 무게중심에는 오래된 신전이 있다.</p>
+    <button class="btn primary" onclick="startGame()">눈을 뜨다</button>
+    <p class="controls-hint">이동 ←→/A D · 점프 Space/W · 슬롯전환 1 2 3 · 스킬사용 Z X C</p>
+  </div>
+
+  <!-- ---------------- 인트로 ---------------- -->
+  <div id="screen-intro" class="overlay-screen hidden">
+    <div class="eyebrow" id="intro-region"></div>
+    <p class="narrative" id="intro-text"></p>
+    <button class="btn primary" onclick="beginPlay()">정신을 차리다</button>
+  </div>
+
+  <!-- ---------------- 신전 컷씬 ---------------- -->
+  <div id="screen-shrine" class="overlay-screen hidden"></div>
+
+  <!-- ---------------- 엔딩 ---------------- -->
+  <div id="screen-ending" class="overlay-screen hidden">
+    <div class="eyebrow">엔딩 (임시)</div>
+    <h1 class="display" style="font-size:32px;">기억 저편에서</h1>
+    <p class="narrative" style="max-width:560px; text-align:left;">
+      흑막이 무너진다. 그러나 마지막 순간, 흑막은 알 수 없는 말을 남긴다 —
+      "네가... 아직 살아있었나. 왕의 아들이."<br><br>
+      「신의 은총」은 원래 왕족만이 다룰 수 있는 힘이었다. 당신이 지금까지 자유로이 파편들을 다룰 수 있었던 것은,
+      우연이 아니라 당신의 핏줄 때문이었을지도 모른다.<br><br>
+      기억은 여전히 돌아오지 않았다. 그러나 이제, 무엇을 찾아야 할지는 알 것 같다.
+    </p>
+    <p class="controls-hint" id="ending-meta"></p>
+    <button class="btn" onclick="location.reload()">처음부터 다시 시작</button>
+  </div>
+
+  <!-- ---------------- 게임 화면 ---------------- -->
+  <div id="game-wrap" class="hidden">
+    <div class="game-top">
+      <div class="panel hud-left">
+        <p class="panel-title">상태</p>
+        <div class="stat-row">
+          <span class="label">체력</span>
+          <div class="bar hp"><div id="hp-bar" style="width:100%"></div></div>
+          <span class="stat-num mono" id="hp-num">100/100</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">보호막</span>
+          <div class="bar shield"><div id="shield-bar" style="width:0%"></div></div>
+          <span class="stat-num mono" id="shield-num">0</span>
+        </div>
+        <div style="margin-top:8px;">
+          <span class="label" style="display:block; margin-bottom:6px;">은총 파편</span>
+          <div class="key-row" id="key-row"></div>
+        </div>
+      </div>
+      <div class="panel hud-right">
+        <p class="panel-title">세계의 형태</p>
+        <div id="minimap-triangle" class="minimap-box"></div>
+        <p class="panel-title" style="margin-top:10px;">현재 던전</p>
+        <div id="minimap-room" class="minimap-box"></div>
+      </div>
+    </div>
+
+    <div class="canvas-frame">
+      <canvas id="game" width="960" height="540"></canvas>
+      <div id="room-title"></div>
+      <div id="toasts"></div>
+    </div>
+
+    <div class="panel game-bottom">
+      <div class="slots" id="job-slots"></div>
+      <p class="panel-title" style="margin-top:12px;">사용 중인 스킬 (Z / X / C)</p>
+      <div class="skills-row" id="skill-palette"></div>
+      <p class="panel-title" style="margin-top:12px;">습득한 직업 — 클릭해 현재 슬롯에 배치</p>
+      <div class="chip-row" id="learned-list"></div>
+    </div>
+  </div>
+
+  <!-- ---------------- 게이트 선택 모달 ---------------- -->
+  <div id="gate-modal" class="modal hidden">
+    <div class="modal-card panel" id="gate-modal-body"></div>
+  </div>
+
+  <footer>신의 은총 — 2D 플랫포머 프로토타입 · 임시 데이터는 README.md 참고</footer>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/world.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/render.js"></script>
+</body>
+</html>
